@@ -1,0 +1,3189 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>DeskCam Studio 桌面教學翻拍與實物投影軟體</title>
+  <style>
+    /* =========================================================
+       1. 設計變數與全域重置 (Dark Studio Theme)
+    ========================================================= */
+    :root {
+      --bg-app: #0f172a;
+      --bg-stage: #020617;
+      --bg-panel: #1e293b;
+      --bg-panel-alt: #0f172a;
+      --bg-hover: #334155;
+      --border: #334155;
+      --border-soft: rgba(148, 163, 184, 0.18);
+      --text-main: #f8fafc;
+      --text-sub: #cbd5e1;
+      --text-muted: #94a3b8;
+
+      --accent-sky: #38bdf8;
+      --accent-blue: #0284c7;
+      --accent-blue-hover: #0369a1;
+      --accent-red: #ef4444;
+      --accent-red-hover: #dc2626;
+      --accent-amber: #f59e0b;
+      --accent-green: #10b981;
+
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.45);
+      --font-sans: "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100dvh;
+      background-color: var(--bg-app);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      overflow: hidden;
+      overscroll-behavior: none;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    button, select, input {
+      font-family: inherit;
+      color: inherit;
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.1s ease, opacity 0.15s ease;
+    }
+
+    button:active {
+      transform: scale(0.97);
+    }
+
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    svg {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+    }
+
+    /* 細緻捲軸 */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--bg-app);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #475569;
+      border-radius: 999px;
+    }
+
+    /* =========================================================
+       2. 主版面結構 (Topbar + Workspace + Control Bar)
+    ========================================================= */
+    .app-shell {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      height: 100dvh;
+    }
+
+    /* 頂部列 */
+    .topbar {
+      min-height: 56px;
+      background: rgba(30, 41, 59, 0.96);
+      border-bottom: 1px solid var(--border);
+      padding: 8px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-shrink: 0;
+      z-index: 30;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .brand-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #0ea5e9, #2563eb);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(14, 165, 233, 0.35);
+      flex-shrink: 0;
+    }
+
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .brand-title {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+
+    .brand-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .pill-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      background: var(--bg-app);
+      border: 1px solid var(--border);
+      color: var(--text-sub);
+    }
+
+    .pill-badge.live {
+      background: rgba(16, 185, 129, 0.16);
+      border-color: rgba(16, 185, 129, 0.45);
+      color: #6ee7b7;
+    }
+
+    .pill-badge.demo {
+      background: rgba(245, 158, 11, 0.16);
+      border-color: rgba(245, 158, 11, 0.45);
+      color: #fcd34d;
+    }
+
+    /* 頂部攝影機來源控制組 */
+    .source-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex: 1;
+      justify-content: center;
+      max-width: 560px;
+      min-width: 0;
+    }
+
+    .studio-select {
+      background: var(--bg-app);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 7px 10px;
+      font-size: 12.5px;
+      color: var(--text-main);
+      outline: none;
+      max-width: 100%;
+    }
+
+    .studio-select:focus {
+      border-color: var(--accent-sky);
+    }
+
+    #cameraSelect {
+      flex: 1;
+      min-width: 120px;
+      max-width: 240px;
+    }
+
+    #resolutionSelect {
+      width: 96px;
+    }
+
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    /* 通用按鈕樣式 */
+    .btn {
+      padding: 7px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 12.5px;
+      font-weight: 600;
+      background: var(--bg-app);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      white-space: nowrap;
+    }
+
+    .btn:hover:not(:disabled) {
+      background: var(--bg-hover);
+    }
+
+    .btn-icon-only {
+      padding: 7px;
+      width: 34px;
+      height: 34px;
+    }
+
+    .btn-primary {
+      background: var(--accent-blue);
+      border-color: transparent;
+      color: #fff;
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: var(--accent-blue-hover);
+    }
+
+    .btn-amber {
+      background: rgba(245, 158, 11, 0.16);
+      border-color: rgba(245, 158, 11, 0.45);
+      color: #fcd34d;
+    }
+    .btn-amber:hover:not(:disabled) {
+      background: rgba(245, 158, 11, 0.28);
+    }
+
+    .btn-amber.active {
+      background: var(--accent-amber);
+      border-color: var(--accent-amber);
+      color: #0f172a;
+    }
+
+    .btn-danger {
+      background: var(--accent-red);
+      border-color: transparent;
+      color: #fff;
+    }
+    .btn-danger:hover:not(:disabled) {
+      background: var(--accent-red-hover);
+    }
+
+    .btn-success {
+      background: var(--accent-green);
+      border-color: transparent;
+      color: #022c22;
+    }
+    .btn-success:hover:not(:disabled) {
+      background: #059669;
+      color: #fff;
+    }
+
+    .btn.active-toggle {
+      background: rgba(56, 189, 248, 0.2);
+      border-color: var(--accent-sky);
+      color: var(--accent-sky);
+    }
+
+    .gallery-btn {
+      position: relative;
+    }
+
+    .count-dot {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      min-width: 19px;
+      height: 19px;
+      padding: 0 5px;
+      border-radius: 999px;
+      background: var(--accent-amber);
+      color: #0f172a;
+      font-size: 11px;
+      font-weight: 700;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+    }
+
+    .count-dot.visible {
+      display: inline-flex;
+    }
+
+    /* =========================================================
+       3. 中央工作舞台與右側拍攝紀錄抽屜
+    ========================================================= */
+    .workspace {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stage {
+      flex: 1;
+      min-width: 0;
+      background: var(--bg-stage);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    #cameraVideo {
+      display: none;
+    }
+
+    #mainCanvas {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      touch-action: none;
+      box-shadow: 0 0 40px rgba(0, 0, 0, 0.7);
+    }
+
+    /* 啟動引導覆蓋層 */
+    .start-overlay {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at center, rgba(15, 23, 42, 0.88), rgba(2, 6, 23, 0.96));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 15;
+    }
+
+    .start-overlay.hidden {
+      display: none;
+    }
+
+    .start-card {
+      width: 100%;
+      max-width: 460px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 28px 24px;
+      text-align: center;
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .start-icon-wrap {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto;
+      border-radius: 18px;
+      background: rgba(56, 189, 248, 0.14);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      color: var(--accent-sky);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .start-icon-wrap svg {
+      width: 34px;
+      height: 34px;
+    }
+
+    .start-card h2 {
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .start-card p {
+      font-size: 13.5px;
+      line-height: 1.6;
+      color: var(--text-sub);
+    }
+
+    .start-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .start-actions .btn {
+      padding: 12px 14px;
+      font-size: 14px;
+      border-radius: var(--radius-md);
+    }
+
+    .start-note {
+      font-size: 11.5px;
+      color: var(--text-muted);
+    }
+
+    /* 舞台 HUD 浮標 */
+    .stage-hud {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      pointer-events: none;
+      z-index: 12;
+    }
+
+    .hud-chip {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 11px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      background: rgba(15, 23, 42, 0.82);
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      backdrop-filter: blur(6px);
+      color: var(--text-main);
+    }
+
+    .hud-chip.visible {
+      display: inline-flex;
+    }
+
+    .hud-chip.rec {
+      background: rgba(127, 29, 29, 0.88);
+      border-color: rgba(248, 113, 113, 0.65);
+      color: #fecaca;
+    }
+
+    .hud-chip.freeze {
+      background: rgba(120, 53, 15, 0.88);
+      border-color: rgba(251, 191, 36, 0.65);
+      color: #fde68a;
+    }
+
+    .hud-chip.projector {
+      background: rgba(6, 78, 59, 0.88);
+      border-color: rgba(52, 211, 153, 0.55);
+      color: #a7f3d0;
+    }
+
+    .rec-dot-pulse {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #ef4444;
+      animation: pulseRec 1s infinite ease-in-out;
+    }
+
+    @keyframes pulseRec {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.35; transform: scale(0.8); }
+    }
+
+    /* 浮動即時標註工具列 (開啟標註模式時顯示於舞台上方) */
+    .annotation-toolbar {
+      position: absolute;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(30, 41, 59, 0.94);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 6px 10px;
+      display: none;
+      align-items: center;
+      gap: 8px;
+      box-shadow: var(--shadow-lg);
+      backdrop-filter: blur(8px);
+      z-index: 20;
+      max-width: calc(100% - 24px);
+      overflow-x: auto;
+    }
+
+    .annotation-toolbar.visible {
+      display: flex;
+    }
+
+    .anno-divider {
+      width: 1px;
+      height: 22px;
+      background: var(--border);
+      flex-shrink: 0;
+    }
+
+    .anno-group {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .anno-btn {
+      padding: 6px 9px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-sub);
+      background: transparent;
+      border: 1px solid transparent;
+    }
+
+    .anno-btn:hover {
+      background: var(--bg-hover);
+      color: #fff;
+    }
+
+    .anno-btn.active {
+      background: var(--accent-blue);
+      color: #fff;
+    }
+
+    .color-swatch {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      padding: 0;
+      transition: transform 0.12s ease;
+    }
+
+    .color-swatch.active {
+      border-color: #fff;
+      transform: scale(1.16);
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.7);
+    }
+
+    .stroke-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 7px;
+      padding: 0;
+      background: var(--bg-app);
+      border: 1px solid var(--border);
+    }
+
+    .stroke-btn.active {
+      border-color: var(--accent-sky);
+      background: rgba(56, 189, 248, 0.18);
+    }
+
+    .stroke-dot {
+      border-radius: 50%;
+      background: #f8fafc;
+      display: block;
+    }
+
+    /* 純淨全螢幕離開按鈕 */
+    .exit-fullscreen-btn {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 60;
+      padding: 10px 18px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      color: #f8fafc;
+      font-size: 13px;
+      font-weight: 600;
+      backdrop-filter: blur(8px);
+      display: none;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .exit-fullscreen-btn.visible {
+      display: inline-flex;
+    }
+
+    .exit-fullscreen-btn:hover {
+      background: rgba(15, 23, 42, 0.95);
+    }
+
+    /* =========================================================
+       4. 右側「拍攝紀錄 (Gallery)」抽屜
+    ========================================================= */
+    .gallery-drawer {
+      width: 330px;
+      background: var(--bg-panel);
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      z-index: 28;
+      transition: margin-right 0.22s ease, transform 0.22s ease;
+    }
+
+    .gallery-drawer.collapsed {
+      margin-right: -330px;
+    }
+
+    .drawer-header {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .drawer-title {
+      font-size: 14px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .drawer-pref {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border-soft);
+      background: rgba(15, 23, 42, 0.45);
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12.5px;
+      color: var(--text-sub);
+      cursor: pointer;
+    }
+
+    .checkbox-label input[type="checkbox"] {
+      width: 15px;
+      height: 15px;
+      accent-color: var(--accent-sky);
+      cursor: pointer;
+    }
+
+    .gallery-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .gallery-empty {
+      margin: auto;
+      text-align: center;
+      padding: 28px 16px;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .gallery-empty svg {
+      width: 42px;
+      height: 42px;
+      opacity: 0.45;
+    }
+
+    .gallery-empty p {
+      font-size: 12.5px;
+      line-height: 1.5;
+    }
+
+    .media-card {
+      background: var(--bg-app);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .media-thumb-wrap {
+      position: relative;
+      aspect-ratio: 16 / 9;
+      background: #000;
+      cursor: pointer;
+      overflow: hidden;
+    }
+
+    .media-thumb-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+
+    .media-badge {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      padding: 2px 7px;
+      border-radius: 6px;
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      color: #fff;
+    }
+
+    .media-badge.mp4 { background: #0284c7; }
+    .media-badge.webm { background: #7c3aed; }
+    .media-badge.png { background: #059669; }
+
+    .media-duration {
+      position: absolute;
+      bottom: 8px;
+      right: 8px;
+      padding: 2px 6px;
+      border-radius: 5px;
+      background: rgba(0, 0, 0, 0.78);
+      font-size: 11px;
+      font-family: ui-monospace, SFMono-Regular, monospace;
+      color: #f8fafc;
+    }
+
+    .media-body {
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .media-name {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .media-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .media-actions {
+      display: grid;
+      grid-template-columns: 1.3fr 1fr auto;
+      gap: 6px;
+    }
+
+    .media-actions .btn {
+      padding: 6px 8px;
+      font-size: 11.5px;
+    }
+
+    /* =========================================================
+       5. 底部核心控制列 (Control Bar)
+    ========================================================= */
+    .control-bar {
+      background: rgba(30, 41, 59, 0.97);
+      border-top: 1px solid var(--border);
+      padding: 8px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-shrink: 0;
+      z-index: 30;
+      overflow-x: auto;
+    }
+
+    .ctrl-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .zoom-box {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg-app);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 3px 8px;
+    }
+
+    .zoom-slider {
+      width: 84px;
+      accent-color: var(--accent-sky);
+      cursor: pointer;
+    }
+
+    .zoom-val {
+      font-size: 11.5px;
+      font-family: ui-monospace, SFMono-Regular, monospace;
+      color: var(--accent-sky);
+      min-width: 32px;
+      text-align: center;
+    }
+
+    .format-box {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: var(--bg-app);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 3px 6px;
+    }
+
+    .format-select {
+      background: transparent;
+      border: none;
+      color: var(--text-sub);
+      font-size: 11.5px;
+      font-weight: 600;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .format-select option {
+      background: var(--bg-panel);
+      color: var(--text-main);
+    }
+
+    .format-tag {
+      padding: 2px 6px;
+      border-radius: 5px;
+      font-size: 10.5px;
+      font-weight: 700;
+      background: rgba(56, 189, 248, 0.18);
+      color: var(--accent-sky);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+    }
+
+    .format-tag.webm {
+      background: rgba(167, 139, 250, 0.18);
+      color: #c4b5fd;
+      border-color: rgba(167, 139, 250, 0.4);
+    }
+
+    .btn-record-main {
+      padding: 8px 16px;
+      font-size: 13.5px;
+      border-radius: 10px;
+      background: var(--accent-red);
+      color: #fff;
+      font-weight: 700;
+      box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35);
+    }
+
+    .btn-record-main:hover:not(:disabled) {
+      background: var(--accent-red-hover);
+    }
+
+    .btn-record-main.recording {
+      box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.55);
+    }
+
+    .rec-shape {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      background: #fff;
+      display: inline-block;
+    }
+
+    .btn-record-main.recording .rec-shape {
+      border-radius: 2px;
+    }
+
+    .btn-snap-main {
+      padding: 8px 15px;
+      font-size: 13.5px;
+      border-radius: 10px;
+      background: var(--accent-blue);
+      color: #fff;
+      font-weight: 700;
+      box-shadow: 0 4px 14px rgba(2, 132, 199, 0.3);
+    }
+
+    .btn-snap-main:hover:not(:disabled) {
+      background: var(--accent-blue-hover);
+    }
+
+    /* =========================================================
+       6. 另存新檔彈窗 (Save As Modal)
+    ========================================================= */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 6, 23, 0.8);
+      backdrop-filter: blur(5px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 50;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal-card {
+      width: 100%;
+      max-width: 580px;
+      max-height: 92dvh;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .modal-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-header h3 {
+      font-size: 16px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .modal-body {
+      padding: 16px 18px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .preview-stage {
+      width: 100%;
+      background: #000;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      max-height: 300px;
+    }
+
+    .preview-stage video,
+    .preview-stage img {
+      max-width: 100%;
+      max-height: 300px;
+      width: 100%;
+      object-fit: contain;
+      display: block;
+    }
+
+    .meta-strip {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: var(--bg-app);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 12.5px;
+      color: var(--text-sub);
+    }
+
+    .meta-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .filename-field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .filename-field label {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text-sub);
+    }
+
+    .filename-input-group {
+      display: flex;
+      align-items: stretch;
+      background: var(--bg-app);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+    }
+
+    .filename-input-group:focus-within {
+      border-color: var(--accent-sky);
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.22);
+    }
+
+    .filename-input-group input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      padding: 10px 12px;
+      font-size: 14px;
+      color: var(--text-main);
+      min-width: 0;
+    }
+
+    .filename-ext {
+      padding: 10px 14px;
+      background: rgba(51, 65, 85, 0.65);
+      border-left: 1px solid var(--border);
+      font-family: ui-monospace, SFMono-Regular, monospace;
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--accent-sky);
+      display: flex;
+      align-items: center;
+    }
+
+    .modal-hint {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .modal-footer {
+      padding: 14px 18px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .modal-footer .btn {
+      padding: 10px 16px;
+      font-size: 13.5px;
+      border-radius: 10px;
+    }
+
+    /* =========================================================
+       7. Toast 通知系統與快門閃光
+    ========================================================= */
+    .toast-container {
+      position: fixed;
+      top: 66px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 80;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      pointer-events: none;
+      width: min(92vw, 440px);
+    }
+
+    .toast {
+      pointer-events: auto;
+      padding: 10px 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: var(--shadow-lg);
+      border: 1px solid var(--border);
+      background: rgba(30, 41, 59, 0.96);
+      color: var(--text-main);
+      opacity: 0;
+      transform: translateY(-8px);
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      text-align: center;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .toast.success {
+      background: rgba(6, 78, 59, 0.95);
+      border-color: rgba(52, 211, 153, 0.55);
+      color: #d1fae5;
+    }
+
+    .toast.warning {
+      background: rgba(120, 53, 15, 0.95);
+      border-color: rgba(251, 191, 36, 0.55);
+      color: #fef3c7;
+    }
+
+    .toast.error {
+      background: rgba(127, 29, 29, 0.95);
+      border-color: rgba(248, 113, 113, 0.55);
+      color: #fee2e2;
+    }
+
+    .shutter-flash {
+      position: fixed;
+      inset: 0;
+      background: rgba(255, 255, 255, 0.72);
+      pointer-events: none;
+      z-index: 90;
+      opacity: 1;
+      transition: opacity 0.22s ease;
+    }
+
+    /* 純淨全螢幕隱藏控制列 */
+    body.clean-mode .topbar,
+    body.clean-mode .control-bar,
+    body.clean-mode .gallery-drawer,
+    body.clean-mode .annotation-toolbar,
+    body.clean-mode .stage-hud {
+      display: none !important;
+    }
+
+    /* =========================================================
+       8. 跨裝置響應式調整 (平板與手機)
+    ========================================================= */
+    @media (max-width: 1024px) {
+      .brand-sub { display: none; }
+      .btn-label-lg { display: none; }
+    }
+
+    @media (max-width: 820px) {
+      .topbar {
+        flex-wrap: wrap;
+        padding: 8px 10px;
+      }
+      .source-controls {
+        order: 3;
+        flex: 1 0 100%;
+        max-width: 100%;
+        justify-content: flex-start;
+      }
+      #cameraSelect {
+        max-width: none;
+      }
+      .gallery-drawer {
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: min(88vw, 340px);
+        box-shadow: -12px 0 32px rgba(0, 0, 0, 0.6);
+        margin-right: 0 !important;
+        transform: translateX(0);
+      }
+      .gallery-drawer.collapsed {
+        transform: translateX(100%);
+      }
+      .control-bar {
+        padding: 8px 10px;
+        gap: 8px;
+      }
+      .zoom-slider {
+        width: 60px;
+      }
+      .start-actions {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .btn-label-sm { display: none; }
+      .modal-footer {
+        flex-direction: column-reverse;
+        align-items: stretch;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- =========================================================
+         頂部導覽與攝影機來源列
+    ========================================================= -->
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-icon" aria-hidden="true">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+        </div>
+        <div class="brand-text">
+          <div class="brand-title">
+            DeskCam Studio
+            <span id="sourceBadge" class="pill-badge">待機中</span>
+          </div>
+          <span class="brand-sub">桌面教學翻拍與實物投影工作站</span>
+        </div>
+      </div>
+
+      <!-- 攝影機切換 / 解析度 / 重整 / 模擬桌面 -->
+      <div class="source-controls">
+        <select id="cameraSelect" class="studio-select" title="選擇攝影機裝置">
+          <option value="">尚未偵測到攝影機</option>
+        </select>
+        <select id="resolutionSelect" class="studio-select" title="選擇解析度">
+          <option value="1080p">1080p</option>
+          <option value="720p" selected>720p</option>
+        </select>
+        <button id="btnRefreshCam" class="btn btn-icon-only" type="button" title="重新偵測攝影機">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+        </button>
+        <button id="btnDemoToggle" class="btn btn-amber" type="button" title="切換模擬工作桌面範例">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+          <span id="btnDemoToggleText">模擬桌面</span>
+        </button>
+      </div>
+
+      <!-- 右側輸出與拍攝紀錄抽屜按鈕 -->
+      <div class="topbar-actions">
+        <button id="btnProjector" class="btn btn-primary" type="button" title="開啟獨立投影機視窗（拖曳至延伸螢幕）">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+          <span id="btnProjectorText" class="btn-label-sm">投影機視窗</span>
+        </button>
+
+        <button id="btnFullscreen" class="btn" type="button" title="純淨全螢幕模式">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+          </svg>
+          <span class="btn-label-lg">純淨全螢幕</span>
+        </button>
+
+        <button id="btnToggleGallery" class="btn gallery-btn" type="button" title="開關拍攝紀錄抽屜">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <span class="btn-label-sm">拍攝紀錄</span>
+          <span id="galleryBadge" class="count-dot">0</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- =========================================================
+         中央即時舞台 + 右側拍攝紀錄抽屜
+    ========================================================= -->
+    <div class="workspace">
+      <main id="stage" class="stage">
+        <video id="cameraVideo" autoplay playsinline muted></video>
+        <canvas id="mainCanvas"></canvas>
+
+        <!-- 左上角狀態 HUD -->
+        <div class="stage-hud">
+          <div id="hudRec" class="hud-chip rec">
+            <span class="rec-dot-pulse"></span>
+            <span>REC</span>
+            <span id="hudRecTimer" style="font-family: ui-monospace, monospace;">00:00</span>
+          </div>
+          <div id="hudFreeze" class="hud-chip freeze">畫面已凍結</div>
+          <div id="hudZoom" class="hud-chip">1.0x</div>
+          <div id="hudRotate" class="hud-chip">0°</div>
+          <div id="hudProjector" class="hud-chip projector">投影機同步中</div>
+        </div>
+
+        <!-- 浮動標註工具列 (開啟標註模式時出現) -->
+        <div id="annotationToolbar" class="annotation-toolbar" role="toolbar" aria-label="即時標註工具">
+          <div class="anno-group">
+            <button class="anno-btn active" data-tool="pen" type="button" title="畫筆">畫筆</button>
+            <button class="anno-btn" data-tool="highlighter" type="button" title="螢光筆">螢光筆</button>
+            <button class="anno-btn" data-tool="arrow" type="button" title="箭頭">箭頭</button>
+            <button class="anno-btn" data-tool="rect" type="button" title="框選">框選</button>
+          </div>
+          <div class="anno-divider"></div>
+          <div class="anno-group">
+            <button class="color-swatch active" data-color="#ef4444" style="background:#ef4444;" type="button" title="紅色"></button>
+            <button class="color-swatch" data-color="#facc15" style="background:#facc15;" type="button" title="黃色"></button>
+            <button class="color-swatch" data-color="#22d3ee" style="background:#22d3ee;" type="button" title="青色"></button>
+            <button class="color-swatch" data-color="#4ade80" style="background:#4ade80;" type="button" title="綠色"></button>
+            <button class="color-swatch" data-color="#ffffff" style="background:#ffffff;" type="button" title="白色"></button>
+          </div>
+          <div class="anno-divider"></div>
+          <div class="anno-group">
+            <button class="stroke-btn" data-width="3" type="button" title="細線"><span class="stroke-dot" style="width:4px;height:4px;"></span></button>
+            <button class="stroke-btn active" data-width="6" type="button" title="中線"><span class="stroke-dot" style="width:8px;height:8px;"></span></button>
+            <button class="stroke-btn" data-width="11" type="button" title="粗線"><span class="stroke-dot" style="width:13px;height:13px;"></span></button>
+          </div>
+          <div class="anno-divider"></div>
+          <div class="anno-group">
+            <button id="btnUndo" class="anno-btn" type="button" title="復原上一筆">復原</button>
+            <button id="btnClearAnno" class="anno-btn" style="color:#fca5a5;" type="button" title="清除全部標註">清除</button>
+          </div>
+        </div>
+
+        <!-- 尚未啟用影像時的開始畫面 -->
+        <div id="startOverlay" class="start-overlay">
+          <div class="start-card">
+            <div class="start-icon-wrap">
+              <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </div>
+            <h2>DeskCam Studio 桌面教學翻拍</h2>
+            <p id="startMessage">
+              連接 USB Webcam 或使用手機／平板鏡頭即可翻拍操作桌面，支援旋轉縮放、畫筆標註、MP4 優先錄影、另存新檔與延伸投影機輸出。
+            </p>
+            <div class="start-actions">
+              <button id="btnStartCamera" class="btn btn-primary" type="button">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+                開啟實體鏡頭
+              </button>
+              <button id="btnStartDemo" class="btn btn-amber" type="button">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                啟用模擬桌面範例
+              </button>
+            </div>
+            <div class="start-note">所有影像處理與錄影皆於本機瀏覽器完成，隱私安全不上傳。</div>
+          </div>
+        </div>
+
+        <!-- 純淨全螢幕退出按鈕 -->
+        <button id="btnExitFullscreen" class="exit-fullscreen-btn" type="button">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+          退出純淨全螢幕
+        </button>
+      </main>
+
+      <!-- 右側可收合「拍攝紀錄 (Gallery)」抽屜 -->
+      <aside id="galleryDrawer" class="gallery-drawer collapsed" aria-label="拍攝紀錄">
+        <div class="drawer-header">
+          <div class="drawer-title">
+            拍攝紀錄
+            <span id="drawerCountPill" class="pill-badge">0</span>
+          </div>
+          <button id="btnCloseGallery" class="btn btn-icon-only" type="button" title="收合抽屜">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div class="drawer-pref">
+          <label class="checkbox-label">
+            <input id="chkAutoSaveModal" type="checkbox" checked />
+            <span>錄影結束自動跳出「另存新檔」視窗</span>
+          </label>
+        </div>
+
+        <div id="galleryList" class="gallery-list">
+          <div id="galleryEmpty" class="gallery-empty">
+            <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            <p>尚無拍照或錄影紀錄<br />拍攝後的檔案會保留於此，可隨時另存新檔或下載。</p>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- =========================================================
+         底部主要控制列
+    ========================================================= -->
+    <footer class="control-bar">
+      <!-- 群組 1：旋轉、翻轉、變焦、重設 -->
+      <div class="ctrl-group">
+        <button id="btnRotate" class="btn" type="button" title="順時針旋轉 90°">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9" />
+          </svg>
+          <span class="btn-label-lg">旋轉</span>
+        </button>
+        <button id="btnFlipH" class="btn btn-icon-only" type="button" title="水平鏡像">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+          </svg>
+        </button>
+        <button id="btnFlipV" class="btn btn-icon-only" type="button" title="垂直翻轉">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+          </svg>
+        </button>
+
+        <div class="zoom-box" title="數位變焦（放大後可拖曳畫面移動）">
+          <button id="btnZoomOut" class="btn btn-icon-only" style="width:26px;height:26px;border:none;" type="button" title="縮小">−</button>
+          <input id="zoomSlider" class="zoom-slider" type="range" min="1" max="4" step="0.1" value="1" />
+          <button id="btnZoomIn" class="btn btn-icon-only" style="width:26px;height:26px;border:none;" type="button" title="放大">+</button>
+          <span id="zoomValue" class="zoom-val">1.0x</span>
+        </div>
+
+        <button id="btnResetView" class="btn" type="button" title="重設視角、旋轉與變焦">
+          重設視角
+        </button>
+      </div>
+
+      <!-- 群組 2：畫面凍結與即時標註 -->
+      <div class="ctrl-group">
+        <button id="btnFreeze" class="btn btn-amber" type="button" title="凍結／解除畫面">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span id="btnFreezeText">畫面凍結</span>
+        </button>
+
+        <button id="btnAnnotationMode" class="btn" type="button" title="開關畫筆標註模式（關閉時放大可拖曳畫面）">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+          </svg>
+          <span>畫筆標註</span>
+        </button>
+      </div>
+
+      <!-- 群組 3：麥克風、MP4 優先格式、拍照、錄影 -->
+      <div class="ctrl-group">
+        <button id="btnMicToggle" class="btn active-toggle" type="button" title="錄影時是否收錄麥克風聲音">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+          </svg>
+          <span id="btnMicText" class="btn-label-lg">麥克風開</span>
+        </button>
+
+        <div class="format-box" title="錄影格式偏好設定">
+          <select id="formatPrefSelect" class="format-select">
+            <option value="mp4" selected>MP4 優先</option>
+            <option value="webm">WebM</option>
+          </select>
+          <span id="activeFormatBadge" class="format-tag">MP4</span>
+        </div>
+
+        <button id="btnSnapshot" class="btn-snap-main" type="button" title="拍攝合成照片 (PNG)">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          <span>拍照</span>
+        </button>
+
+        <button id="btnRecord" class="btn-record-main" type="button" title="開始／停止錄影">
+          <span class="rec-shape"></span>
+          <span id="btnRecordText">錄影</span>
+        </button>
+      </div>
+    </footer>
+  </div>
+
+  <!-- =========================================================
+       另存新檔彈窗 (Save As Modal)
+  ========================================================= -->
+  <div id="saveModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="saveModalTitle">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="saveModalTitle">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:var(--accent-sky);">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+          </svg>
+          <span id="saveModalHeading">另存影片檔</span>
+        </h3>
+        <button id="btnCloseSaveModal" class="btn btn-icon-only" type="button" title="關閉視窗">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <!-- 影片／照片內嵌預覽 -->
+        <div id="savePreviewStage" class="preview-stage"></div>
+
+        <!-- 檔案中繼資訊 (格式、檔案大小、時長) -->
+        <div class="meta-strip">
+          <span class="meta-item">格式：<strong id="saveMetaExt" style="color:var(--accent-sky);">.mp4</strong></span>
+          <span>•</span>
+          <span class="meta-item">檔案大小：<strong id="saveMetaSize">0 KB</strong></span>
+          <span id="saveMetaDurSep">•</span>
+          <span id="saveMetaDurWrap" class="meta-item">錄影時長：<strong id="saveMetaDuration">00:00</strong></span>
+        </div>
+
+        <!-- 自訂檔名輸入欄位 -->
+        <div class="filename-field">
+          <label for="saveFilenameInput">檔案名稱（可自由修改，不需輸入副檔名）</label>
+          <div class="filename-input-group">
+            <input id="saveFilenameInput" type="text" placeholder="請輸入檔案名稱" autocomplete="off" />
+            <span id="saveFilenameExt" class="filename-ext">.mp4</span>
+          </div>
+          <div class="modal-hint">
+            電腦版 Chrome / Edge 將開啟系統「另存新檔」視窗讓您指定班級資料夾；手機、平板或其他瀏覽器將以您設定的檔名直接儲存至下載資料夾。
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button id="btnKeepInGallery" class="btn" type="button">先留在拍攝紀錄</button>
+        <button id="btnSaveAsPicker" class="btn btn-primary" type="button">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+          </svg>
+          選擇資料夾並另存新檔
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast 通知容器 -->
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+  <!-- =========================================================
+       核心 ES6+ 原生 JavaScript 應用程式邏輯
+  ========================================================= -->
+  <script>
+    (() => {
+      'use strict';
+
+      // ---------------------------------------------------------
+      // 1. 狀態管理 (State)
+      // ---------------------------------------------------------
+      const state = {
+        sourceMode: 'none', // 'none' | 'camera' | 'demo'
+        cameraStream: null,
+        selectedDeviceId: '',
+        resolution: '720p',
+
+        // 畫面變換
+        rotation: 0, // 0, 90, 180, 270
+        flipH: false,
+        flipV: false,
+        zoom: 1.0,
+        panX: 0,
+        panY: 0,
+        isFrozen: false,
+
+        // 標註模式與工具
+        annotationMode: false,
+        tool: 'pen', // 'pen' | 'highlighter' | 'arrow' | 'rect'
+        color: '#ef4444',
+        lineWidth: 6,
+        annotations: [],
+        activeShape: null,
+        isPointerDown: false,
+        lastPointer: { x: 0, y: 0 },
+
+        // 錄影與音訊
+        micEnabled: true,
+        formatPref: 'mp4', // 'mp4' | 'webm'
+        detectedMime: '',
+        detectedExt: 'mp4',
+        isRecording: false,
+        mediaRecorder: null,
+        recordedChunks: [],
+        micStream: null,
+        audioContext: null,
+        recStartTime: 0,
+        recTimerId: null,
+        recDurationSec: 0,
+
+        // 投影機視窗與全螢幕
+        projectorWin: null,
+        projectorStream: null,
+        projectorFallbackTimer: null,
+        isCleanFullscreen: false,
+
+        // 拍攝紀錄與目前開啟的 Save As 項目
+        gallery: [], // { id, type:'video'|'image', blob, url, thumbUrl, baseName, ext, mimeType, sizeBytes, durationText, timestamp }
+        currentSaveItemId: null,
+      };
+
+      // ---------------------------------------------------------
+      // 2. DOM 元素參照
+      // ---------------------------------------------------------
+      const $ = (id) => document.getElementById(id);
+      const els = {
+        sourceBadge: $('sourceBadge'),
+        cameraSelect: $('cameraSelect'),
+        resolutionSelect: $('resolutionSelect'),
+        btnRefreshCam: $('btnRefreshCam'),
+        btnDemoToggle: $('btnDemoToggle'),
+        btnDemoToggleText: $('btnDemoToggleText'),
+        btnProjector: $('btnProjector'),
+        btnProjectorText: $('btnProjectorText'),
+        btnFullscreen: $('btnFullscreen'),
+        btnExitFullscreen: $('btnExitFullscreen'),
+        btnToggleGallery: $('btnToggleGallery'),
+        galleryBadge: $('galleryBadge'),
+
+        stage: $('stage'),
+        cameraVideo: $('cameraVideo'),
+        mainCanvas: $('mainCanvas'),
+        startOverlay: $('startOverlay'),
+        startMessage: $('startMessage'),
+        btnStartCamera: $('btnStartCamera'),
+        btnStartDemo: $('btnStartDemo'),
+
+        hudRec: $('hudRec'),
+        hudRecTimer: $('hudRecTimer'),
+        hudFreeze: $('hudFreeze'),
+        hudZoom: $('hudZoom'),
+        hudRotate: $('hudRotate'),
+        hudProjector: $('hudProjector'),
+
+        annotationToolbar: $('annotationToolbar'),
+        btnUndo: $('btnUndo'),
+        btnClearAnno: $('btnClearAnno'),
+
+        galleryDrawer: $('galleryDrawer'),
+        drawerCountPill: $('drawerCountPill'),
+        btnCloseGallery: $('btnCloseGallery'),
+        chkAutoSaveModal: $('chkAutoSaveModal'),
+        galleryList: $('galleryList'),
+        galleryEmpty: $('galleryEmpty'),
+
+        btnRotate: $('btnRotate'),
+        btnFlipH: $('btnFlipH'),
+        btnFlipV: $('btnFlipV'),
+        btnZoomOut: $('btnZoomOut'),
+        btnZoomIn: $('btnZoomIn'),
+        zoomSlider: $('zoomSlider'),
+        zoomValue: $('zoomValue'),
+        btnResetView: $('btnResetView'),
+
+        btnFreeze: $('btnFreeze'),
+        btnFreezeText: $('btnFreezeText'),
+        btnAnnotationMode: $('btnAnnotationMode'),
+        btnMicToggle: $('btnMicToggle'),
+        btnMicText: $('btnMicText'),
+        formatPrefSelect: $('formatPrefSelect'),
+        activeFormatBadge: $('activeFormatBadge'),
+        btnSnapshot: $('btnSnapshot'),
+        btnRecord: $('btnRecord'),
+        btnRecordText: $('btnRecordText'),
+
+        saveModal: $('saveModal'),
+        saveModalHeading: $('saveModalHeading'),
+        btnCloseSaveModal: $('btnCloseSaveModal'),
+        savePreviewStage: $('savePreviewStage'),
+        saveMetaExt: $('saveMetaExt'),
+        saveMetaSize: $('saveMetaSize'),
+        saveMetaDurSep: $('saveMetaDurSep'),
+        saveMetaDurWrap: $('saveMetaDurWrap'),
+        saveMetaDuration: $('saveMetaDuration'),
+        saveFilenameInput: $('saveFilenameInput'),
+        saveFilenameExt: $('saveFilenameExt'),
+        btnKeepInGallery: $('btnKeepInGallery'),
+        btnSaveAsPicker: $('btnSaveAsPicker'),
+
+        toastContainer: $('toastContainer'),
+      };
+
+      const ctx = els.mainCanvas.getContext('2d', { alpha: false });
+      els.mainCanvas.width = 1280;
+      els.mainCanvas.height = 720;
+
+      // 離屏畫布：凍結底圖與模擬工作桌面
+      const freezeCanvas = document.createElement('canvas');
+      const freezeCtx = freezeCanvas.getContext('2d');
+
+      const demoCanvas = document.createElement('canvas');
+      demoCanvas.width = 1280;
+      demoCanvas.height = 720;
+      const demoCtx = demoCanvas.getContext('2d');
+
+      // ---------------------------------------------------------
+      // 3. 工具函式 (Toast、格式化、時間戳記)
+      // ---------------------------------------------------------
+      function showToast(msg, type = 'info', duration = 3400) {
+        const div = document.createElement('div');
+        div.className = `toast ${type}`;
+        div.textContent = msg;
+        els.toastContainer.appendChild(div);
+        requestAnimationFrame(() => div.classList.add('show'));
+        setTimeout(() => {
+          div.classList.remove('show');
+          setTimeout(() => div.remove(), 220);
+        }, duration);
+      }
+
+      function formatDuration(totalSec) {
+        const sec = Math.max(0, Math.floor(totalSec));
+        const mm = String(Math.floor(sec / 60)).padStart(2, '0');
+        const ss = String(sec % 60).padStart(2, '0');
+        return `${mm}:${ss}`;
+      }
+
+      function formatFileSize(bytes) {
+        if (!bytes || bytes <= 0) return '0 KB';
+        if (bytes < 1024 * 1024) {
+          return `${(bytes / 1024).toFixed(1)} KB`;
+        }
+        return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+      }
+
+      function buildTimestampName(prefix) {
+        const d = new Date();
+        const pad = (n) => String(n).padStart(2, '0');
+        const datePart = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}`;
+        const timePart = `${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+        return `${prefix}_${datePart}_${timePart}`;
+      }
+
+      function sanitizeFilename(name) {
+        return name.replace(/[\\/:*?"<>|]/g, '_').trim();
+      }
+
+      // ---------------------------------------------------------
+      // 4. MP4 優先 MIME 格式偵測
+      // ---------------------------------------------------------
+      const MP4_PRIORITY_MIMES = [
+        'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
+        'video/mp4;codecs=avc1,mp4a.40.2',
+        'video/mp4',
+        'video/webm;codecs=vp9,opus',
+        'video/webm;codecs=vp8,opus',
+        'video/webm',
+      ];
+
+      const WEBM_PRIORITY_MIMES = [
+        'video/webm;codecs=vp9,opus',
+        'video/webm;codecs=vp8,opus',
+        'video/webm',
+        'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
+        'video/mp4;codecs=avc1,mp4a.40.2',
+        'video/mp4',
+      ];
+
+      function detectBestRecordingFormat() {
+        const list = state.formatPref === 'webm' ? WEBM_PRIORITY_MIMES : MP4_PRIORITY_MIMES;
+        let chosen = '';
+        if (window.MediaRecorder && typeof MediaRecorder.isTypeSupported === 'function') {
+          for (const mime of list) {
+            if (MediaRecorder.isTypeSupported(mime)) {
+              chosen = mime;
+              break;
+            }
+          }
+        }
+        state.detectedMime = chosen;
+        const isMp4 = chosen.startsWith('video/mp4');
+        state.detectedExt = isMp4 ? 'mp4' : 'webm';
+
+        els.activeFormatBadge.textContent = isMp4 ? 'MP4' : 'WebM';
+        els.activeFormatBadge.classList.toggle('webm', !isMp4);
+      }
+
+      // ---------------------------------------------------------
+      // 5. 攝影機管理與模擬工作桌面切換
+      // ---------------------------------------------------------
+      function getCanvasTargetSize() {
+        const base = state.resolution === '1080p' ? { w: 1920, h: 1080 } : { w: 1280, h: 720 };
+        if (state.rotation === 90 || state.rotation === 270) {
+          return { w: base.h, h: base.w };
+        }
+        return base;
+      }
+
+      function syncCanvasSize() {
+        const { w, h } = getCanvasTargetSize();
+        if (els.mainCanvas.width !== w || els.mainCanvas.height !== h) {
+          els.mainCanvas.width = w;
+          els.mainCanvas.height = h;
+        }
+      }
+
+      async function enumerateCameras() {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+        try {
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          const cams = devices.filter((d) => d.kind === 'videoinput');
+          els.cameraSelect.innerHTML = '';
+
+          if (cams.length === 0) {
+            const opt = document.createElement('option');
+            opt.value = '';
+            opt.textContent = '未偵測到實體鏡頭';
+            els.cameraSelect.appendChild(opt);
+            return;
+          }
+
+          cams.forEach((cam, idx) => {
+            const opt = document.createElement('option');
+            opt.value = cam.deviceId;
+            opt.textContent = cam.label || `攝影機裝置 ${idx + 1}`;
+            if (cam.deviceId === state.selectedDeviceId) {
+              opt.selected = true;
+            }
+            els.cameraSelect.appendChild(opt);
+          });
+        } catch (err) {
+          console.error('列舉攝影機失敗:', err);
+        }
+      }
+
+      function stopCameraTracks() {
+        if (state.cameraStream) {
+          state.cameraStream.getTracks().forEach((t) => t.stop());
+          state.cameraStream = null;
+        }
+        els.cameraVideo.srcObject = null;
+      }
+
+      async function startCamera(deviceId = state.selectedDeviceId) {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          const msg = '此瀏覽器環境不支援攝影機存取（需 HTTPS 或本機伺服器），建議先使用「模擬桌面範例」。';
+          els.startMessage.textContent = msg;
+          showToast(msg, 'warning', 4500);
+          return;
+        }
+
+        stopCameraTracks();
+
+        const resConstraint = state.resolution === '1080p'
+          ? { width: { ideal: 1920 }, height: { ideal: 1080 } }
+          : { width: { ideal: 1280 }, height: { ideal: 720 } };
+
+        const videoConstraint = deviceId
+          ? { ...resConstraint, deviceId: { exact: deviceId } }
+          : { ...resConstraint, facingMode: { ideal: 'environment' } };
+
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ video: videoConstraint, audio: false });
+          state.cameraStream = stream;
+          state.sourceMode = 'camera';
+          state.isFrozen = false;
+          updateFreezeUI();
+
+          const track = stream.getVideoTracks()[0];
+          const settings = track.getSettings ? track.getSettings() : {};
+          if (settings.deviceId) state.selectedDeviceId = settings.deviceId;
+
+          els.cameraVideo.srcObject = stream;
+          await els.cameraVideo.play();
+
+          els.startOverlay.classList.add('hidden');
+          updateSourceUI();
+          await enumerateCameras();
+          showToast(`已啟用鏡頭：${track.label || '預設攝影機'}`, 'success');
+        } catch (err) {
+          console.error('開啟攝影機失敗:', err);
+          if (err.name === 'OverconstrainedError' && deviceId) {
+            return startCamera('');
+          }
+          let msg = '無法開啟攝影機，請確認已連接裝置並允許權限，或點擊「啟用模擬桌面範例」。';
+          if (err.name === 'NotAllowedError') {
+            msg = '攝影機權限被拒絕！請在瀏覽器網址列允許鏡頭權限，或先使用「模擬桌面範例」。';
+          } else if (err.name === 'NotFoundError') {
+            msg = '找不到可用的攝影機裝置，請檢查 USB 連線，或改用「模擬桌面範例」。';
+          }
+          els.startMessage.textContent = msg;
+          els.startOverlay.classList.remove('hidden');
+          showToast(msg, 'warning', 4500);
+        }
+      }
+
+      function startDemoMode() {
+        stopCameraTracks();
+        state.sourceMode = 'demo';
+        state.isFrozen = false;
+        updateFreezeUI();
+        els.startOverlay.classList.add('hidden');
+        updateSourceUI();
+        showToast('已啟用模擬工作桌面範例，可測試所有旋轉、標註、錄影與投影功能', 'info');
+      }
+
+      function stopDemoMode() {
+        state.sourceMode = 'none';
+        state.isFrozen = false;
+        updateFreezeUI();
+        els.startOverlay.classList.remove('hidden');
+        updateSourceUI();
+        showToast('已關閉模擬桌面模式', 'info', 2200);
+      }
+
+      function updateSourceUI() {
+        els.sourceBadge.className = 'pill-badge';
+        if (state.sourceMode === 'camera') {
+          els.sourceBadge.textContent = `即時鏡頭 · ${state.resolution.toUpperCase()}`;
+          els.sourceBadge.classList.add('live');
+          els.btnDemoToggle.classList.remove('active');
+          els.btnDemoToggleText.textContent = '模擬桌面';
+        } else if (state.sourceMode === 'demo') {
+          els.sourceBadge.textContent = '模擬工作桌面';
+          els.sourceBadge.classList.add('demo');
+          els.btnDemoToggle.classList.add('active');
+          els.btnDemoToggleText.textContent = '結束模擬';
+        } else {
+          els.sourceBadge.textContent = '待機中';
+          els.btnDemoToggle.classList.remove('active');
+          els.btnDemoToggleText.textContent = '模擬桌面';
+        }
+      }
+
+      // ---------------------------------------------------------
+      // 6. 內建創客實作模擬工作桌面繪製器 (1280x720)
+      // ---------------------------------------------------------
+      function drawRoundedRect(c, x, y, w, h, r) {
+        c.beginPath();
+        c.moveTo(x + r, y);
+        c.arcTo(x + w, y, x + w, y + h, r);
+        c.arcTo(x + w, y + h, x, y + h, r);
+        c.arcTo(x, y + h, x, y, r);
+        c.arcTo(x, y, x + w, y, r);
+        c.closePath();
+      }
+
+      function renderDemoWorkbench(timeMs) {
+        const w = demoCanvas.width;
+        const h = demoCanvas.height;
+        const t = timeMs / 1000;
+
+        // 1. 綠色防靜電切割墊底色
+        demoCtx.fillStyle = '#0d3b31';
+        demoCtx.fillRect(0, 0, w, h);
+
+        // 2. 網格線與尺規刻度
+        const step = 40;
+        for (let x = 0; x <= w; x += step) {
+          const major = x % 200 === 0;
+          demoCtx.strokeStyle = major ? 'rgba(167, 243, 208, 0.36)' : 'rgba(167, 243, 208, 0.13)';
+          demoCtx.lineWidth = major ? 1.5 : 1;
+          demoCtx.beginPath();
+          demoCtx.moveTo(x, 0);
+          demoCtx.lineTo(x, h);
+          demoCtx.stroke();
+        }
+        for (let y = 0; y <= h; y += step) {
+          const major = y % 200 === 0;
+          demoCtx.strokeStyle = major ? 'rgba(167, 243, 208, 0.36)' : 'rgba(167, 243, 208, 0.13)';
+          demoCtx.lineWidth = major ? 1.5 : 1;
+          demoCtx.beginPath();
+          demoCtx.moveTo(0, y);
+          demoCtx.lineTo(w, y);
+          demoCtx.stroke();
+        }
+
+        // 頂部與左側尺規刻度
+        demoCtx.fillStyle = 'rgba(209, 250, 229, 0.65)';
+        demoCtx.font = '600 13px monospace';
+        for (let i = 1; i <= 15; i++) {
+          demoCtx.fillText(`${i * 2}cm`, i * 80 - 16, 22);
+        }
+        for (let j = 1; j <= 8; j++) {
+          demoCtx.fillText(`${j * 2}`, 8, j * 80 + 4);
+        }
+
+        // 左下切割墊標題
+        demoCtx.fillStyle = 'rgba(209, 250, 229, 0.72)';
+        demoCtx.font = 'bold 18px "Microsoft JhengHei", sans-serif';
+        demoCtx.fillText('DESKCAM 創客教學模擬工作墊  A3 CUTTING MAT', 40, h - 24);
+
+        // 3. 左側微控制器板 (UNO 開發板)
+        const bx = 110, by = 150, bw = 330, bh = 230;
+        demoCtx.save();
+        demoCtx.shadowColor = 'rgba(0,0,0,0.45)';
+        demoCtx.shadowBlur = 18;
+        demoCtx.shadowOffsetY = 8;
+        demoCtx.fillStyle = '#0e7490';
+        drawRoundedRect(demoCtx, bx, by, bw, bh, 12);
+        demoCtx.fill();
+        demoCtx.restore();
+
+        // USB 與電源孔
+        demoCtx.fillStyle = '#cbd5e1';
+        demoCtx.fillRect(bx - 16, by + 32, 54, 46);
+        demoCtx.fillStyle = '#1e293b';
+        demoCtx.fillRect(bx - 10, by + 158, 50, 34);
+
+        // 晶片與排針
+        demoCtx.fillStyle = '#0f172a';
+        demoCtx.fillRect(bx + 115, by + 108, 165, 46);
+        demoCtx.fillRect(bx + 76, by + 12, 224, 18);
+        demoCtx.fillRect(bx + 106, by + bh - 30, 194, 18);
+
+        demoCtx.fillStyle = '#94a3b8';
+        demoCtx.font = '12px monospace';
+        demoCtx.fillText('ATMEGA328P-PU', bx + 142, by + 136);
+        demoCtx.fillStyle = '#f8fafc';
+        demoCtx.font = 'bold 15px sans-serif';
+        demoCtx.fillText('UNO 控制板', bx + 78, by + 80);
+
+        // 電源綠燈 & 閃爍腳位燈
+        demoCtx.fillStyle = '#22c55e';
+        demoCtx.beginPath();
+        demoCtx.arc(bx + 286, by + 68, 6, 0, Math.PI * 2);
+        demoCtx.fill();
+
+        const blink = Math.floor(t * 2.2) % 2 === 0;
+        demoCtx.fillStyle = blink ? '#facc15' : '#713f12';
+        demoCtx.beginPath();
+        demoCtx.arc(bx + 256, by + 68, 6, 0, Math.PI * 2);
+        demoCtx.fill();
+        if (blink) {
+          demoCtx.fillStyle = 'rgba(250, 204, 21, 0.35)';
+          demoCtx.beginPath();
+          demoCtx.arc(bx + 256, by + 68, 16, 0, Math.PI * 2);
+          demoCtx.fill();
+        }
+
+        // 4. 中央麵包板與動態流水 LED 電路
+        const px = 540, py = 140, pw = 380, ph = 246;
+        demoCtx.save();
+        demoCtx.shadowColor = 'rgba(0,0,0,0.4)';
+        demoCtx.shadowBlur = 16;
+        demoCtx.shadowOffsetY = 8;
+        demoCtx.fillStyle = '#f1f5f9';
+        drawRoundedRect(demoCtx, px, py, pw, ph, 10);
+        demoCtx.fill();
+        demoCtx.restore();
+
+        // 電源軌線
+        demoCtx.strokeStyle = '#ef4444';
+        demoCtx.lineWidth = 3;
+        demoCtx.beginPath();
+        demoCtx.moveTo(px + 20, py + 20);
+        demoCtx.lineTo(px + pw - 20, py + 20);
+        demoCtx.stroke();
+        demoCtx.strokeStyle = '#3b82f6';
+        demoCtx.beginPath();
+        demoCtx.moveTo(px + 20, py + 36);
+        demoCtx.lineTo(px + pw - 20, py + 36);
+        demoCtx.stroke();
+
+        // 插孔陣列
+        demoCtx.fillStyle = '#64748b';
+        for (let r = 0; r < 5; r++) {
+          for (let c = 0; c < 18; c++) {
+            demoCtx.fillRect(px + 28 + c * 18, py + 60 + r * 14, 5, 5);
+            demoCtx.fillRect(px + 28 + c * 18, py + 150 + r * 14, 5, 5);
+          }
+        }
+
+        // 3 顆流水燈 LED
+        const activeLed = Math.floor(t * 2.5) % 3;
+        const leds = [
+          { x: px + 110, y: py + 124, on: '#ef4444', off: '#7f1d1d', glow: 'rgba(239,68,68,0.45)', label: 'D9 紅燈' },
+          { x: px + 190, y: py + 124, on: '#facc15', off: '#713f12', glow: 'rgba(250,204,21,0.45)', label: 'D10 黃燈' },
+          { x: px + 270, y: py + 124, on: '#22c55e', off: '#14532d', glow: 'rgba(34,197,94,0.45)', label: 'D11 綠燈' },
+        ];
+        leds.forEach((led, idx) => {
+          const lit = idx === activeLed;
+          if (lit) {
+            demoCtx.fillStyle = led.glow;
+            demoCtx.beginPath();
+            demoCtx.arc(led.x, led.y, 26, 0, Math.PI * 2);
+            demoCtx.fill();
+          }
+          demoCtx.fillStyle = lit ? led.on : led.off;
+          demoCtx.beginPath();
+          demoCtx.arc(led.x, led.y, 12, 0, Math.PI * 2);
+          demoCtx.fill();
+          demoCtx.fillStyle = '#334155';
+          demoCtx.font = 'bold 12px sans-serif';
+          demoCtx.fillText(led.label, led.x - 22, led.y + 34);
+        });
+
+        // 5. 彩色杜邦線連接
+        const wires = [
+          { from: [bx + 205, by + 20], to: [px + 110, py + 84], color: '#ef4444' },
+          { from: [bx + 225, by + 20], to: [px + 190, py + 84], color: '#facc15' },
+          { from: [bx + 245, by + 20], to: [px + 270, py + 84], color: '#22c55e' },
+          { from: [bx + 150, by + bh - 20], to: [px + 48, py + 36], color: '#38bdf8' },
+        ];
+        wires.forEach((wire) => {
+          demoCtx.strokeStyle = wire.color;
+          demoCtx.lineWidth = 4;
+          demoCtx.lineCap = 'round';
+          demoCtx.beginPath();
+          demoCtx.moveTo(wire.from[0], wire.from[1]);
+          demoCtx.bezierCurveTo(
+            wire.from[0] + 75, wire.from[1] - 88,
+            wire.to[0] - 75, wire.to[1] - 88,
+            wire.to[0], wire.to[1]
+          );
+          demoCtx.stroke();
+        });
+
+        // 6. 右側旋轉中的 SG90 伺服馬達
+        const sx = 1090, sy = 310;
+        demoCtx.fillStyle = '#1d4ed8';
+        drawRoundedRect(demoCtx, sx - 58, sy - 44, 116, 88, 10);
+        demoCtx.fill();
+
+        const angleRad = Math.sin(t * 1.45) * (Math.PI / 2.2);
+        const angleDeg = Math.round(((angleRad + Math.PI / 2) / Math.PI) * 180);
+
+        demoCtx.save();
+        demoCtx.translate(sx, sy);
+        demoCtx.rotate(angleRad);
+        demoCtx.fillStyle = '#f8fafc';
+        drawRoundedRect(demoCtx, -8, -62, 16, 70, 8);
+        demoCtx.fill();
+        demoCtx.fillStyle = '#0f172a';
+        demoCtx.beginPath();
+        demoCtx.arc(0, 0, 6, 0, Math.PI * 2);
+        demoCtx.fill();
+        demoCtx.restore();
+
+        demoCtx.fillStyle = '#f8fafc';
+        demoCtx.font = 'bold 14px sans-serif';
+        demoCtx.fillText('SG90 伺服馬達', sx - 50, sy + 72);
+        demoCtx.fillStyle = '#38bdf8';
+        demoCtx.font = 'bold 16px monospace';
+        demoCtx.fillText(`角度: ${angleDeg}°`, sx - 44, sy + 96);
+
+        // 7. 下方零件與教學說明卡片
+        const cx = 110, cy = 460;
+        demoCtx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+        demoCtx.strokeStyle = 'rgba(56, 189, 248, 0.55)';
+        demoCtx.lineWidth = 2;
+        drawRoundedRect(demoCtx, cx, cy, 480, 155, 14);
+        demoCtx.fill();
+        demoCtx.stroke();
+
+        const nowText = new Date().toLocaleTimeString('zh-TW', { hour12: false });
+        demoCtx.fillStyle = '#38bdf8';
+        demoCtx.font = 'bold 17px sans-serif';
+        demoCtx.fillText('歐姆定律與電路實作教學示範區', cx + 22, cy + 36);
+        demoCtx.fillStyle = '#e2e8f0';
+        demoCtx.font = '15px monospace';
+        demoCtx.fillText('V = I × R   |   LED 限流電阻 = 220Ω', cx + 22, cy + 70);
+        demoCtx.fillStyle = '#94a3b8';
+        demoCtx.font = '13.5px sans-serif';
+        demoCtx.fillText('操作提示：可開啟「畫筆標註」圈選重點，並直接錄影另存 MP4', cx + 22, cy + 104);
+        demoCtx.fillStyle = '#fbbf24';
+        demoCtx.font = 'bold 13.5px monospace';
+        demoCtx.fillText(`LIVE WORKBENCH TIME: ${nowText}`, cx + 22, cy + 134);
+      }
+
+      // ---------------------------------------------------------
+      // 7. 主畫布合成迴圈 (影像變換 + 凍結 + 向量標註)
+      // ---------------------------------------------------------
+      function drawArrowShape(targetCtx, x1, y1, x2, y2, headLen) {
+        const angle = Math.atan2(y2 - y1, x2 - x1);
+        targetCtx.beginPath();
+        targetCtx.moveTo(x1, y1);
+        targetCtx.lineTo(x2, y2);
+        targetCtx.stroke();
+
+        targetCtx.beginPath();
+        targetCtx.moveTo(x2, y2);
+        targetCtx.lineTo(x2 - headLen * Math.cos(angle - Math.PI / 6), y2 - headLen * Math.sin(angle - Math.PI / 6));
+        targetCtx.moveTo(x2, y2);
+        targetCtx.lineTo(x2 - headLen * Math.cos(angle + Math.PI / 6), y2 - headLen * Math.sin(angle + Math.PI / 6));
+        targetCtx.stroke();
+      }
+
+      function drawAnnotations(targetCtx, w, h) {
+        const shapes = state.activeShape ? [...state.annotations, state.activeShape] : state.annotations;
+        const scaleFactor = w / 1280;
+
+        for (const s of shapes) {
+          targetCtx.save();
+          targetCtx.strokeStyle = s.color;
+          targetCtx.lineCap = 'round';
+          targetCtx.lineJoin = 'round';
+
+          if (s.type === 'highlighter') {
+            targetCtx.globalAlpha = 0.38;
+            targetCtx.lineWidth = s.width * 3.4 * scaleFactor;
+          } else {
+            targetCtx.globalAlpha = 1;
+            targetCtx.lineWidth = s.width * scaleFactor;
+          }
+
+          if (s.type === 'pen' || s.type === 'highlighter') {
+            if (s.points.length > 0) {
+              targetCtx.beginPath();
+              targetCtx.moveTo(s.points[0].x * w, s.points[0].y * h);
+              for (let i = 1; i < s.points.length; i++) {
+                targetCtx.lineTo(s.points[i].x * w, s.points[i].y * h);
+              }
+              if (s.points.length === 1) {
+                targetCtx.lineTo(s.points[0].x * w + 0.1, s.points[0].y * h + 0.1);
+              }
+              targetCtx.stroke();
+            }
+          } else if (s.type === 'arrow') {
+            drawArrowShape(
+              targetCtx,
+              s.startX * w,
+              s.startY * h,
+              s.endX * w,
+              s.endY * h,
+              Math.max(16, s.width * 3.2) * scaleFactor
+            );
+          } else if (s.type === 'rect') {
+            const rx = s.startX * w;
+            const ry = s.startY * h;
+            const rw = (s.endX - s.startX) * w;
+            const rh = (s.endY - s.startY) * h;
+            targetCtx.strokeRect(rx, ry, rw, rh);
+            targetCtx.fillStyle = s.color;
+            targetCtx.globalAlpha = 0.12;
+            targetCtx.fillRect(rx, ry, rw, rh);
+          }
+
+          targetCtx.restore();
+        }
+      }
+
+      function renderLoop(timeMs) {
+        syncCanvasSize();
+        const cw = els.mainCanvas.width;
+        const ch = els.mainCanvas.height;
+
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, cw, ch);
+
+        let src = null;
+        let sw = 0;
+        let sh = 0;
+
+        if (state.sourceMode === 'camera' && els.cameraVideo.readyState >= 2) {
+          if (state.isFrozen && freezeCanvas.width > 0) {
+            src = freezeCanvas;
+            sw = freezeCanvas.width;
+            sh = freezeCanvas.height;
+          } else {
+            src = els.cameraVideo;
+            sw = els.cameraVideo.videoWidth;
+            sh = els.cameraVideo.videoHeight;
+          }
+        } else if (state.sourceMode === 'demo') {
+          if (state.isFrozen && freezeCanvas.width > 0) {
+            src = freezeCanvas;
+            sw = freezeCanvas.width;
+            sh = freezeCanvas.height;
+          } else {
+            renderDemoWorkbench(timeMs);
+            src = demoCanvas;
+            sw = demoCanvas.width;
+            sh = demoCanvas.height;
+          }
+        }
+
+        if (src && sw > 0 && sh > 0) {
+          ctx.save();
+          ctx.translate(cw / 2 + state.panX * cw, ch / 2 + state.panY * ch);
+          ctx.scale(state.zoom, state.zoom);
+          ctx.rotate((state.rotation * Math.PI) / 180);
+          ctx.scale(state.flipH ? -1 : 1, state.flipV ? -1 : 1);
+
+          const rotated90 = state.rotation === 90 || state.rotation === 270;
+          const availW = rotated90 ? ch : cw;
+          const availH = rotated90 ? cw : ch;
+          const ratio = Math.min(availW / sw, availH / sh);
+          const drawW = sw * ratio;
+          const drawH = sh * ratio;
+
+          ctx.drawImage(src, -drawW / 2, -drawH / 2, drawW, drawH);
+          ctx.restore();
+        }
+
+        drawAnnotations(ctx, cw, ch);
+        requestAnimationFrame(renderLoop);
+      }
+
+      requestAnimationFrame(renderLoop);
+
+      // ---------------------------------------------------------
+      // 8. 舞台控制：旋轉、翻轉、變焦、凍結、平移與標註
+      // ---------------------------------------------------------
+      function updateTransformUI() {
+        els.zoomSlider.value = state.zoom.toFixed(1);
+        els.zoomValue.textContent = `${state.zoom.toFixed(1)}x`;
+
+        els.btnFlipH.classList.toggle('active-toggle', state.flipH);
+        els.btnFlipV.classList.toggle('active-toggle', state.flipV);
+
+        if (state.zoom > 1.01) {
+          els.hudZoom.textContent = `變焦 ${state.zoom.toFixed(1)}x`;
+          els.hudZoom.classList.add('visible');
+        } else {
+          els.hudZoom.classList.remove('visible');
+          state.panX = 0;
+          state.panY = 0;
+        }
+
+        if (state.rotation !== 0) {
+          els.hudRotate.textContent = `旋轉 ${state.rotation}°`;
+          els.hudRotate.classList.add('visible');
+        } else {
+          els.hudRotate.classList.remove('visible');
+        }
+
+        updateCanvasCursor();
+      }
+
+      function updateCanvasCursor() {
+        if (state.annotationMode) {
+          els.mainCanvas.style.cursor = 'crosshair';
+        } else if (state.zoom > 1.01) {
+          els.mainCanvas.style.cursor = state.isPointerDown ? 'grabbing' : 'grab';
+        } else {
+          els.mainCanvas.style.cursor = 'default';
+        }
+      }
+
+      function setZoom(val) {
+        state.zoom = Math.max(1, Math.min(4, Math.round(val * 10) / 10));
+        const maxPan = (state.zoom - 1) / 2;
+        state.panX = Math.max(-maxPan, Math.min(maxPan, state.panX));
+        state.panY = Math.max(-maxPan, Math.min(maxPan, state.panY));
+        updateTransformUI();
+      }
+
+      function resetView() {
+        state.rotation = 0;
+        state.flipH = false;
+        state.flipV = false;
+        state.zoom = 1.0;
+        state.panX = 0;
+        state.panY = 0;
+        updateTransformUI();
+        showToast('已重設視角與變焦', 'info', 1800);
+      }
+
+      function toggleFreeze() {
+        if (state.sourceMode === 'none') {
+          showToast('請先開啟實體鏡頭或啟用模擬桌面範例', 'warning');
+          return;
+        }
+        if (!state.isFrozen) {
+          const src = state.sourceMode === 'camera' ? els.cameraVideo : demoCanvas;
+          const sw = state.sourceMode === 'camera' ? els.cameraVideo.videoWidth : demoCanvas.width;
+          const sh = state.sourceMode === 'camera' ? els.cameraVideo.videoHeight : demoCanvas.height;
+          if (sw > 0 && sh > 0) {
+            freezeCanvas.width = sw;
+            freezeCanvas.height = sh;
+            freezeCtx.drawImage(src, 0, 0, sw, sh);
+            state.isFrozen = true;
+            updateFreezeUI();
+            showToast('畫面已凍結，您可安心進行標註與講解', 'info', 2200);
+          }
+        } else {
+          state.isFrozen = false;
+          updateFreezeUI();
+          showToast('已解除凍結，恢復即時影像', 'info', 1800);
+        }
+      }
+
+      function updateFreezeUI() {
+        els.hudFreeze.classList.toggle('visible', state.isFrozen);
+        els.btnFreeze.classList.toggle('active', state.isFrozen);
+        els.btnFreezeText.textContent = state.isFrozen ? '解除凍結' : '畫面凍結';
+      }
+
+      function toggleAnnotationMode() {
+        state.annotationMode = !state.annotationMode;
+        els.btnAnnotationMode.classList.toggle('active-toggle', state.annotationMode);
+        els.annotationToolbar.classList.toggle('visible', state.annotationMode);
+        updateCanvasCursor();
+      }
+
+      function getNormalizedPointer(e) {
+        const rect = els.mainCanvas.getBoundingClientRect();
+        return {
+          x: Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)),
+          y: Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height)),
+        };
+      }
+
+      els.mainCanvas.addEventListener('pointerdown', (e) => {
+        if (state.sourceMode === 'none') return;
+        els.mainCanvas.setPointerCapture(e.pointerId);
+        state.isPointerDown = true;
+        const pos = getNormalizedPointer(e);
+        state.lastPointer = pos;
+
+        if (!state.annotationMode) {
+          updateCanvasCursor();
+          return;
+        }
+
+        if (state.tool === 'pen' || state.tool === 'highlighter') {
+          state.activeShape = {
+            type: state.tool,
+            color: state.color,
+            width: state.lineWidth,
+            points: [pos],
+          };
+        } else {
+          state.activeShape = {
+            type: state.tool, // 'arrow' | 'rect'
+            color: state.color,
+            width: state.lineWidth,
+            startX: pos.x,
+            startY: pos.y,
+            endX: pos.x,
+            endY: pos.y,
+          };
+        }
+      });
+
+      els.mainCanvas.addEventListener('pointermove', (e) => {
+        if (!state.isPointerDown) return;
+        const pos = getNormalizedPointer(e);
+
+        if (!state.annotationMode) {
+          if (state.zoom > 1.01) {
+            const dx = pos.x - state.lastPointer.x;
+            const dy = pos.y - state.lastPointer.y;
+            const maxPan = (state.zoom - 1) / 2;
+            state.panX = Math.max(-maxPan, Math.min(maxPan, state.panX + dx));
+            state.panY = Math.max(-maxPan, Math.min(maxPan, state.panY + dy));
+            state.lastPointer = pos;
+          }
+          return;
+        }
+
+        if (!state.activeShape) return;
+        if (state.activeShape.type === 'pen' || state.activeShape.type === 'highlighter') {
+          state.activeShape.points.push(pos);
+        } else {
+          state.activeShape.endX = pos.x;
+          state.activeShape.endY = pos.y;
+        }
+      });
+
+      function endPointer(e) {
+        if (!state.isPointerDown) return;
+        state.isPointerDown = false;
+        if (e && els.mainCanvas.hasPointerCapture(e.pointerId)) {
+          els.mainCanvas.releasePointerCapture(e.pointerId);
+        }
+        if (state.activeShape) {
+          state.annotations.push(state.activeShape);
+          state.activeShape = null;
+        }
+        updateCanvasCursor();
+      }
+
+      els.mainCanvas.addEventListener('pointerup', endPointer);
+      els.mainCanvas.addEventListener('pointercancel', endPointer);
+
+      // ---------------------------------------------------------
+      // 9. 拍照與 MP4 優先錄影 (含麥克風混音)
+      // ---------------------------------------------------------
+      function takeSnapshot() {
+        if (state.sourceMode === 'none') {
+          showToast('請先開啟實體鏡頭或模擬桌面後再拍照', 'warning');
+          return;
+        }
+
+        const flash = document.createElement('div');
+        flash.className = 'shutter-flash';
+        document.body.appendChild(flash);
+        requestAnimationFrame(() => { flash.style.opacity = '0'; });
+        setTimeout(() => flash.remove(), 240);
+
+        els.mainCanvas.toBlob((blob) => {
+          if (!blob) {
+            showToast('拍照失敗，請重試', 'error');
+            return;
+          }
+          const url = URL.createObjectURL(blob);
+          const baseName = buildTimestampName('教學拍照');
+          const item = {
+            id: `img_${Date.now()}`,
+            type: 'image',
+            blob,
+            url,
+            thumbUrl: url,
+            baseName,
+            ext: 'png',
+            mimeType: 'image/png',
+            sizeBytes: blob.size,
+            durationText: '',
+            timestamp: new Date().toLocaleTimeString('zh-TW', { hour12: false }),
+          };
+
+          addGalleryItem(item);
+          triggerDirectDownload(item.url, `${item.baseName}.${item.ext}`);
+          showToast(`已拍照並儲存：${item.baseName}.png`, 'success');
+        }, 'image/png');
+      }
+
+      async function toggleRecording() {
+        if (state.sourceMode === 'none') {
+          showToast('請先開啟實體鏡頭或模擬桌面後再錄影', 'warning');
+          return;
+        }
+        if (state.isRecording) {
+          stopRecording();
+        } else {
+          await startRecording();
+        }
+      }
+
+      async function startRecording() {
+        if (!window.MediaRecorder) {
+          showToast('此瀏覽器不支援錄影功能 (MediaRecorder)', 'error');
+          return;
+        }
+
+        detectBestRecordingFormat();
+
+        try {
+          const canvasStream = els.mainCanvas.captureStream(30);
+          const combinedTracks = [...canvasStream.getVideoTracks()];
+
+          // 若開啟麥克風，透過 AudioContext 混音並加入 MediaStreamTrack
+          if (state.micEnabled && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            try {
+              state.micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+              const AudioCtx = window.AudioContext || window.webkitAudioContext;
+              if (AudioCtx) {
+                state.audioContext = new AudioCtx();
+                const sourceNode = state.audioContext.createMediaStreamSource(state.micStream);
+                const destNode = state.audioContext.createMediaStreamDestination();
+                sourceNode.connect(destNode);
+                destNode.stream.getAudioTracks().forEach((t) => combinedTracks.push(t));
+              } else {
+                state.micStream.getAudioTracks().forEach((t) => combinedTracks.push(t));
+              }
+            } catch (micErr) {
+              console.warn('無法取得麥克風權限，改為無聲錄影:', micErr);
+              showToast('未取得麥克風權限，將以無聲模式錄影', 'warning', 3200);
+            }
+          }
+
+          const combinedStream = new MediaStream(combinedTracks);
+          const options = state.detectedMime
+            ? { mimeType: state.detectedMime, videoBitsPerSecond: 4500000 }
+            : { videoBitsPerSecond: 4500000 };
+
+          state.recordedChunks = [];
+          const coverThumb = els.mainCanvas.toDataURL('image/jpeg', 0.65);
+
+          state.mediaRecorder = new MediaRecorder(combinedStream, options);
+
+          state.mediaRecorder.ondataavailable = (e) => {
+            if (e.data && e.data.size > 0) {
+              state.recordedChunks.push(e.data);
+            }
+          };
+
+          state.mediaRecorder.onstop = () => {
+            const actualMime = state.mediaRecorder.mimeType || state.detectedMime || 'video/webm';
+            const isMp4 = actualMime.toLowerCase().includes('mp4');
+            const ext = isMp4 ? 'mp4' : 'webm';
+            const blob = new Blob(state.recordedChunks, { type: actualMime });
+            const url = URL.createObjectURL(blob);
+            const baseName = buildTimestampName('教學錄影');
+
+            const item = {
+              id: `vid_${Date.now()}`,
+              type: 'video',
+              blob,
+              url,
+              thumbUrl: coverThumb,
+              baseName,
+              ext,
+              mimeType: actualMime,
+              sizeBytes: blob.size,
+              durationText: formatDuration(state.recDurationSec),
+              timestamp: new Date().toLocaleTimeString('zh-TW', { hour12: false }),
+            };
+
+            addGalleryItem(item);
+            cleanupAudioResources();
+
+            if (els.chkAutoSaveModal.checked) {
+              openSaveModal(item.id);
+            } else {
+              showToast(`錄影已完成（${ext.toUpperCase()}），已收錄於「拍攝紀錄」`, 'success');
+            }
+          };
+
+          state.mediaRecorder.start(250);
+          state.isRecording = true;
+          state.recStartTime = Date.now();
+          state.recDurationSec = 0;
+          updateRecordingUI();
+
+          state.recTimerId = setInterval(() => {
+            state.recDurationSec = Math.floor((Date.now() - state.recStartTime) / 1000);
+            els.hudRecTimer.textContent = formatDuration(state.recDurationSec);
+          }, 400);
+
+          showToast(`開始錄影（格式：${state.detectedExt.toUpperCase()}）`, 'info', 2200);
+        } catch (err) {
+          console.error('啟動錄影失敗:', err);
+          cleanupAudioResources();
+          showToast('啟動錄影時發生錯誤，請嘗試切換錄影格式後再試', 'error', 4000);
+        }
+      }
+
+      function stopRecording() {
+        if (state.mediaRecorder && state.mediaRecorder.state !== 'inactive') {
+          state.mediaRecorder.stop();
+        }
+        state.isRecording = false;
+        if (state.recTimerId) {
+          clearInterval(state.recTimerId);
+          state.recTimerId = null;
+        }
+        updateRecordingUI();
+      }
+
+      function cleanupAudioResources() {
+        if (state.micStream) {
+          state.micStream.getTracks().forEach((t) => t.stop());
+          state.micStream = null;
+        }
+        if (state.audioContext) {
+          state.audioContext.close().catch(() => {});
+          state.audioContext = null;
+        }
+      }
+
+      function updateRecordingUI() {
+        els.hudRec.classList.toggle('visible', state.isRecording);
+        els.btnRecord.classList.toggle('recording', state.isRecording);
+        els.btnRecordText.textContent = state.isRecording ? '停止錄影' : '錄影';
+        if (state.isRecording) {
+          els.hudRecTimer.textContent = '00:00';
+        }
+      }
+
+      // ---------------------------------------------------------
+      // 10. 「另存新檔 (Save As)」視窗與 File System Access API
+      // ---------------------------------------------------------
+      function triggerDirectDownload(url, fullFilename) {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fullFilename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+
+      function openSaveModal(itemId) {
+        const item = state.gallery.find((x) => x.id === itemId);
+        if (!item) return;
+
+        state.currentSaveItemId = itemId;
+        els.saveModalHeading.textContent = item.type === 'video' ? '另存影片檔' : '另存照片檔';
+        els.saveMetaExt.textContent = `.${item.ext}`;
+        els.saveMetaSize.textContent = formatFileSize(item.sizeBytes);
+
+        if (item.type === 'video') {
+          els.saveMetaDurSep.style.display = 'inline';
+          els.saveMetaDurWrap.style.display = 'inline-flex';
+          els.saveMetaDuration.textContent = item.durationText || '00:00';
+        } else {
+          els.saveMetaDurSep.style.display = 'none';
+          els.saveMetaDurWrap.style.display = 'none';
+        }
+
+        els.saveFilenameInput.value = item.baseName;
+        els.saveFilenameExt.textContent = `.${item.ext}`;
+
+        // 建立內嵌預覽
+        els.savePreviewStage.innerHTML = '';
+        if (item.type === 'video') {
+          const video = document.createElement('video');
+          video.src = item.url;
+          video.controls = true;
+          video.playsInline = true;
+          els.savePreviewStage.appendChild(video);
+        } else {
+          const img = document.createElement('img');
+          img.src = item.url;
+          img.alt = item.baseName;
+          els.savePreviewStage.appendChild(img);
+        }
+
+        els.saveModal.classList.add('open');
+        setTimeout(() => {
+          els.saveFilenameInput.focus();
+          els.saveFilenameInput.select();
+        }, 60);
+      }
+
+      function closeSaveModal() {
+        const vid = els.savePreviewStage.querySelector('video');
+        if (vid) vid.pause();
+        els.savePreviewStage.innerHTML = '';
+        els.saveModal.classList.remove('open');
+        state.currentSaveItemId = null;
+      }
+
+      async function handleSaveAsAction() {
+        const item = state.gallery.find((x) => x.id === state.currentSaveItemId);
+        if (!item) return;
+
+        const cleanBase = sanitizeFilename(els.saveFilenameInput.value) || item.baseName;
+        item.baseName = cleanBase; // 同步更新拍攝紀錄中的名稱
+        renderGallery();
+
+        const fullFilename = `${cleanBase}.${item.ext}`;
+
+        // 優先嘗試現代 File System Access API (showSaveFilePicker)
+        if (typeof window.showSaveFilePicker === 'function') {
+          try {
+            const acceptMap = item.type === 'video'
+              ? (item.ext === 'mp4'
+                  ? { 'video/mp4': ['.mp4'] }
+                  : { 'video/webm': ['.webm'] })
+              : { 'image/png': ['.png'] };
+
+            const description = item.type === 'video'
+              ? (item.ext === 'mp4' ? 'MP4 教學影片檔' : 'WebM 教學影片檔')
+              : 'PNG 教學照片檔';
+
+            const handle = await window.showSaveFilePicker({
+              suggestedName: fullFilename,
+              types: [{ description, accept: acceptMap }],
+            });
+
+            const writable = await handle.createWritable();
+            await writable.write(item.blob);
+            await writable.close();
+
+            showToast(`已成功另存新檔：${handle.name || fullFilename}`, 'success');
+            closeSaveModal();
+            return;
+          } catch (err) {
+            // 若使用者在系統視窗點擊「取消」，直接結束不觸發自動下載
+            if (err && err.name === 'AbortError') {
+              showToast('已取消另存新檔', 'info', 2000);
+              return;
+            }
+            // 若在 iframe 預覽環境或瀏覽器安全限制被封鎖，優雅降級至標準下載
+            console.warn('showSaveFilePicker 無法使用，切換為標準下載:', err);
+          }
+        }
+
+        // 降級方案：以自訂檔名觸發標準瀏覽器下載
+        triggerDirectDownload(item.url, fullFilename);
+        showToast(`已以自訂檔名儲存至下載資料夾：${fullFilename}`, 'success', 3800);
+        closeSaveModal();
+      }
+
+      // ---------------------------------------------------------
+      // 11. 拍攝紀錄抽屜管理 (Gallery)
+      // ---------------------------------------------------------
+      function addGalleryItem(item) {
+        state.gallery.unshift(item);
+        renderGallery();
+      }
+
+      function deleteGalleryItem(itemId) {
+        const idx = state.gallery.findIndex((x) => x.id === itemId);
+        if (idx === -1) return;
+        const [removed] = state.gallery.splice(idx, 1);
+        try {
+          URL.revokeObjectURL(removed.url);
+        } catch (_) {}
+        renderGallery();
+        showToast('已從拍攝紀錄移除該檔案', 'info', 2000);
+      }
+
+      function renderGallery() {
+        const count = state.gallery.length;
+        els.drawerCountPill.textContent = count;
+        els.galleryBadge.textContent = count;
+        els.galleryBadge.classList.toggle('visible', count > 0);
+
+        els.galleryList.innerHTML = '';
+        if (count === 0) {
+          els.galleryList.appendChild(els.galleryEmpty);
+          return;
+        }
+
+        state.gallery.forEach((item) => {
+          const card = document.createElement('div');
+          card.className = 'media-card';
+
+          const badgeClass = item.ext === 'mp4' ? 'mp4' : (item.ext === 'webm' ? 'webm' : 'png');
+          const durationHtml = item.durationText ? `<span class="media-duration">${item.durationText}</span>` : '';
+
+          card.innerHTML = `
+            <div class="media-thumb-wrap" title="點擊預覽與另存新檔">
+              <img src="${item.thumbUrl}" alt="${item.baseName}" />
+              <span class="media-badge ${badgeClass}">${item.ext.toUpperCase()}</span>
+              ${durationHtml}
+            </div>
+            <div class="media-body">
+              <div class="media-name" title="${item.baseName}.${item.ext}">${item.baseName}.${item.ext}</div>
+              <div class="media-meta">
+                <span>${item.timestamp}</span>
+                <span>${formatFileSize(item.sizeBytes)}</span>
+              </div>
+              <div class="media-actions">
+                <button class="btn btn-primary btn-card-saveas" type="button">另存新檔</button>
+                <button class="btn btn-card-dl" type="button">快速下載</button>
+                <button class="btn btn-icon-only btn-card-del" type="button" title="刪除" style="color:#fca5a5;">
+                  <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          `;
+
+          card.querySelector('.media-thumb-wrap').addEventListener('click', () => openSaveModal(item.id));
+          card.querySelector('.btn-card-saveas').addEventListener('click', () => openSaveModal(item.id));
+          card.querySelector('.btn-card-dl').addEventListener('click', () => {
+            const full = `${item.baseName}.${item.ext}`;
+            triggerDirectDownload(item.url, full);
+            showToast(`已快速下載：${full}`, 'success', 2500);
+          });
+          card.querySelector('.btn-card-del').addEventListener('click', () => deleteGalleryItem(item.id));
+
+          els.galleryList.appendChild(card);
+        });
+      }
+
+      // ---------------------------------------------------------
+      // 12. 雙投影機輸出模式 (獨立投影視窗 + 純淨全螢幕)
+      // ---------------------------------------------------------
+      function toggleProjectorWindow() {
+        if (state.projectorWin && !state.projectorWin.closed) {
+          state.projectorWin.close();
+          cleanupProjector();
+          showToast('已關閉投影機獨立視窗', 'info', 2000);
+          return;
+        }
+
+        if (state.sourceMode === 'none') {
+          showToast('請先開啟實體鏡頭或啟用模擬桌面範例', 'warning');
+          return;
+        }
+
+        const win = window.open('', 'DeskCamProjector', 'width=1280,height=720,menubar=no,toolbar=no,location=no,status=no');
+        if (!win) {
+          showToast('瀏覽器封鎖了彈出視窗，請在網址列允許彈出式視窗後再試一次', 'error', 5000);
+          return;
+        }
+
+        state.projectorWin = win;
+        win.document.open();
+        win.document.write(`<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>DeskCam 投影機輸出視窗</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%; height: 100%;
+      background: #000; overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+      font-family: "Microsoft JhengHei", sans-serif;
+    }
+    video, canvas {
+      width: 100vw; height: 100vh;
+      object-fit: contain;
+      background: #000;
+      display: block;
+    }
+    #projHint {
+      position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%);
+      padding: 8px 18px; border-radius: 999px;
+      background: rgba(15, 23, 42, 0.86); color: #e2e8f0;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      font-size: 13px; pointer-events: none; transition: opacity 0.6s ease;
+    }
+  </style>
+</head>
+<body>
+  <video id="projVideo" autoplay playsinline muted></video>
+  <canvas id="projFallback" style="display:none;"></canvas>
+  <div id="projHint">請將此視窗拖曳至延伸投影螢幕，雙擊畫面即可進入全螢幕</div>
+  <script>
+    setTimeout(() => {
+      const h = document.getElementById('projHint');
+      if (h) h.style.opacity = '0';
+    }, 4500);
+    document.body.addEventListener('dblclick', () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen?.().catch(() => {});
+      } else {
+        document.exitFullscreen?.().catch(() => {});
+      }
+    });
+  <\/script>
+</body>
+</html>`);
+        win.document.close();
+
+        // 優先使用 captureStream(30)，若不支援則自動啟用 Canvas 備援定時同步
+        try {
+          if (typeof els.mainCanvas.captureStream === 'function') {
+            state.projectorStream = els.mainCanvas.captureStream(30);
+            const projVideo = win.document.getElementById('projVideo');
+            projVideo.srcObject = state.projectorStream;
+            projVideo.play().catch(() => {});
+          } else {
+            throw new Error('captureStream unavailable');
+          }
+        } catch (_) {
+          const projVideo = win.document.getElementById('projVideo');
+          const projCanvas = win.document.getElementById('projFallback');
+          projVideo.style.display = 'none';
+          projCanvas.style.display = 'block';
+          const pCtx = projCanvas.getContext('2d');
+          state.projectorFallbackTimer = setInterval(() => {
+            if (!state.projectorWin || state.projectorWin.closed) return;
+            if (projCanvas.width !== els.mainCanvas.width || projCanvas.height !== els.mainCanvas.height) {
+              projCanvas.width = els.mainCanvas.width;
+              projCanvas.height = els.mainCanvas.height;
+            }
+            pCtx.drawImage(els.mainCanvas, 0, 0);
+          }, 50);
+        }
+
+        updateProjectorUI(true);
+        showToast('已開啟投影機視窗！請拖曳至延伸螢幕並雙擊全螢幕', 'success', 4200);
+
+        const closeWatcher = setInterval(() => {
+          if (!state.projectorWin || state.projectorWin.closed) {
+            clearInterval(closeWatcher);
+            cleanupProjector();
+          }
+        }, 700);
+      }
+
+      function cleanupProjector() {
+        if (state.projectorStream) {
+          state.projectorStream.getTracks().forEach((t) => t.stop());
+          state.projectorStream = null;
+        }
+        if (state.projectorFallbackTimer) {
+          clearInterval(state.projectorFallbackTimer);
+          state.projectorFallbackTimer = null;
+        }
+        state.projectorWin = null;
+        updateProjectorUI(false);
+      }
+
+      function updateProjectorUI(active) {
+        els.hudProjector.classList.toggle('visible', active);
+        els.btnProjectorText.textContent = active ? '關閉投影' : '投影機視窗';
+        els.btnProjector.classList.toggle('btn-success', active);
+        els.btnProjector.classList.toggle('btn-primary', !active);
+      }
+
+      function enterCleanFullscreen() {
+        state.isCleanFullscreen = true;
+        document.body.classList.add('clean-mode');
+        els.btnExitFullscreen.classList.add('visible');
+        if (document.documentElement.requestFullscreen) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        }
+      }
+
+      function exitCleanFullscreen() {
+        state.isCleanFullscreen = false;
+        document.body.classList.remove('clean-mode');
+        els.btnExitFullscreen.classList.remove('visible');
+        if (document.fullscreenElement && document.exitFullscreen) {
+          document.exitFullscreen().catch(() => {});
+        }
+      }
+
+      document.addEventListener('fullscreenchange', () => {
+        if (!document.fullscreenElement && state.isCleanFullscreen) {
+          exitCleanFullscreen();
+        }
+      });
+
+      // ---------------------------------------------------------
+      // 13. 事件綁定 (Event Listeners)
+      // ---------------------------------------------------------
+      els.btnStartCamera.addEventListener('click', () => startCamera());
+      els.btnStartDemo.addEventListener('click', startDemoMode);
+
+      els.btnDemoToggle.addEventListener('click', () => {
+        if (state.sourceMode === 'demo') {
+          stopDemoMode();
+        } else {
+          startDemoMode();
+        }
+      });
+
+      els.btnRefreshCam.addEventListener('click', async () => {
+        await enumerateCameras();
+        showToast('已重新偵測攝影機裝置列表', 'info', 2000);
+      });
+
+      els.cameraSelect.addEventListener('change', (e) => {
+        if (e.target.value) {
+          state.selectedDeviceId = e.target.value;
+          startCamera(state.selectedDeviceId);
+        }
+      });
+
+      els.resolutionSelect.addEventListener('change', (e) => {
+        state.resolution = e.target.value;
+        syncCanvasSize();
+        if (state.sourceMode === 'camera') {
+          startCamera(state.selectedDeviceId);
+        } else {
+          updateSourceUI();
+        }
+      });
+
+      // 舞台控制
+      els.btnRotate.addEventListener('click', () => {
+        state.rotation = (state.rotation + 90) % 360;
+        updateTransformUI();
+      });
+      els.btnFlipH.addEventListener('click', () => {
+        state.flipH = !state.flipH;
+        updateTransformUI();
+      });
+      els.btnFlipV.addEventListener('click', () => {
+        state.flipV = !state.flipV;
+        updateTransformUI();
+      });
+      els.zoomSlider.addEventListener('input', (e) => setZoom(parseFloat(e.target.value)));
+      els.btnZoomOut.addEventListener('click', () => setZoom(state.zoom - 0.2));
+      els.btnZoomIn.addEventListener('click', () => setZoom(state.zoom + 0.2));
+      els.btnResetView.addEventListener('click', resetView);
+
+      // 凍結與標註
+      els.btnFreeze.addEventListener('click', toggleFreeze);
+      els.btnAnnotationMode.addEventListener('click', toggleAnnotationMode);
+
+      document.querySelectorAll('.anno-btn[data-tool]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.tool = btn.dataset.tool;
+          document.querySelectorAll('.anno-btn[data-tool]').forEach((b) => b.classList.toggle('active', b === btn));
+        });
+      });
+
+      document.querySelectorAll('.color-swatch').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.color = btn.dataset.color;
+          document.querySelectorAll('.color-swatch').forEach((b) => b.classList.toggle('active', b === btn));
+        });
+      });
+
+      document.querySelectorAll('.stroke-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.lineWidth = Number(btn.dataset.width);
+          document.querySelectorAll('.stroke-btn').forEach((b) => b.classList.toggle('active', b === btn));
+        });
+      });
+
+      els.btnUndo.addEventListener('click', () => {
+        if (state.annotations.length > 0) {
+          state.annotations.pop();
+        }
+      });
+
+      els.btnClearAnno.addEventListener('click', () => {
+        if (state.annotations.length > 0) {
+          state.annotations = [];
+          state.activeShape = null;
+          showToast('已清除全部標註', 'info', 1800);
+        }
+      });
+
+      // 麥克風與格式偏好
+      els.btnMicToggle.addEventListener('click', () => {
+        state.micEnabled = !state.micEnabled;
+        els.btnMicToggle.classList.toggle('active-toggle', state.micEnabled);
+        els.btnMicText.textContent = state.micEnabled ? '麥克風開' : '麥克風關';
+        showToast(state.micEnabled ? '錄影將同步收錄麥克風聲音' : '錄影已切換為靜音模式', 'info', 2000);
+      });
+
+      els.formatPrefSelect.addEventListener('change', (e) => {
+        state.formatPref = e.target.value;
+        detectBestRecordingFormat();
+        showToast(`錄影格式已設定為：${state.detectedExt.toUpperCase()}`, 'info', 2000);
+      });
+
+      // 拍照、錄影、投影與抽屜
+      els.btnSnapshot.addEventListener('click', takeSnapshot);
+      els.btnRecord.addEventListener('click', toggleRecording);
+      els.btnProjector.addEventListener('click', toggleProjectorWindow);
+      els.btnFullscreen.addEventListener('click', enterCleanFullscreen);
+      els.btnExitFullscreen.addEventListener('click', exitCleanFullscreen);
+
+      els.btnToggleGallery.addEventListener('click', () => {
+        els.galleryDrawer.classList.toggle('collapsed');
+      });
+      els.btnCloseGallery.addEventListener('click', () => {
+        els.galleryDrawer.classList.add('collapsed');
+      });
+
+      // 另存新檔視窗事件
+      els.btnCloseSaveModal.addEventListener('click', closeSaveModal);
+      els.btnKeepInGallery.addEventListener('click', () => {
+        closeSaveModal();
+        els.galleryDrawer.classList.remove('collapsed');
+        showToast('檔案已保留於右側「拍攝紀錄」，隨時可另存新檔', 'info', 2600);
+      });
+      els.btnSaveAsPicker.addEventListener('click', handleSaveAsAction);
+      els.saveFilenameInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          handleSaveAsAction();
+        }
+      });
+      els.saveModal.addEventListener('click', (e) => {
+        if (e.target === els.saveModal) closeSaveModal();
+      });
+
+      // 鍵盤快捷鍵
+      window.addEventListener('keydown', (e) => {
+        const tag = (e.target && e.target.tagName) || '';
+        if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+
+        if (e.code === 'Escape') {
+          if (els.saveModal.classList.contains('open')) closeSaveModal();
+          else if (state.isCleanFullscreen) exitCleanFullscreen();
+        } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+          e.preventDefault();
+          if (state.annotations.length > 0) state.annotations.pop();
+        }
+      });
+
+      window.addEventListener('beforeunload', () => {
+        if (state.projectorWin && !state.projectorWin.closed) {
+          state.projectorWin.close();
+        }
+      });
+
+      // ---------------------------------------------------------
+      // 14. 初始化
+      // ---------------------------------------------------------
+      detectBestRecordingFormat();
+      updateTransformUI();
+      updateSourceUI();
+      renderGallery();
+      enumerateCameras();
+    })();
+  </script>
+</body>
+</html>
